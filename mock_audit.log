@@ -1,2 +1,0 @@
-{"timestamp": "2026-07-07T03:30:55.037734+00:00", "host": "127.0.0.1", "source": "mock_auditd", "event_id": "EXECVE", "process_name": "echo", "command_line": "echo \"cascabel_execution_test\" > /tmp/cascabel_t1059.txt"}
-{"timestamp": "2026-07-07T03:30:55.107774+00:00", "host": "127.0.0.1", "source": "mock_auditd", "event_id": "EXECVE", "process_name": "rm", "command_line": "rm -f /tmp/cascabel_t1059.txt"}

@@ -1,6 +1,7 @@
 import click
 import os
 import yaml
+import urllib.request
 from cascabel.auth.crypto import generate_keypair, sign_payload
 from cascabel.audit.ledger import verify_ledger, append_entry
 from cascabel.auth.scope import Scope
@@ -10,6 +11,9 @@ from cascabel.telemetry.normalizer import parse_mock_audit_log
 from cascabel.telemetry.correlator import correlate_emulation, find_last_emulation_in_ledger, InsufficientTelemetryError
 from cascabel.synthesis.llm import generate_rule
 from cascabel.synthesis.prover import prove_detection
+from cascabel.optimizer.greedy import optimize_coverage
+from cascabel.report.pdf import generate_pdf_report
+from cascabel.config import CONFIG
 
 @click.group()
 def cli():
@@ -19,7 +23,6 @@ def cli():
 def doctor():
     """Check environment, scope, and connectivity."""
     click.echo("Running CASCABEL Doctor...")
-    
     click.echo(" - Python Environment: OK")
     
     if verify_ledger():
@@ -27,15 +30,15 @@ def doctor():
     else:
         click.echo(" - Ledger Integrity: TAMPERED OR INVALID")
         
-    if os.path.exists('cascabel.pub'):
+    if os.path.exists(CONFIG.public_key_path):
         click.echo(" - Public Key: FOUND")
     else:
         click.echo(" - Public Key: MISSING")
         
     scope = None
-    if os.path.exists('scope.yaml') and os.path.exists('cascabel.pub'):
+    if os.path.exists(CONFIG.scope_path) and os.path.exists(CONFIG.public_key_path):
         try:
-            scope = Scope.load('scope.yaml', 'cascabel.pub')
+            scope = Scope.load(CONFIG.scope_path, CONFIG.public_key_path)
             click.echo(" - Scope: VALID AND ACTIVE")
         except Exception as e:
             click.echo(f" - Scope: INVALID ({str(e)})")
@@ -44,18 +47,17 @@ def doctor():
 
     # Connectivity Smoke Test
     if scope and scope.contract.allowed_targets:
-        import urllib.request
         target = scope.contract.allowed_targets[0]
         try:
-            req = urllib.request.Request(f"http://{target}:8080/run", method='OPTIONS')
+            req = urllib.request.Request(f"http://{target}:{CONFIG.agent_port}/run", method='OPTIONS')
             with urllib.request.urlopen(req, timeout=2) as response:
                 pass
-            click.echo(f" - Connectivity to {target}: OK")
+            click.echo(f" - Connectivity to {target}:{CONFIG.agent_port}: OK")
         except Exception as e:
             if hasattr(e, 'code'):
-                click.echo(f" - Connectivity to {target}: OK")
+                click.echo(f" - Connectivity to {target}:{CONFIG.agent_port}: OK")
             else:
-                click.echo(f" - Connectivity to {target}: FAILED ({e})")
+                click.echo(f" - Connectivity to {target}:{CONFIG.agent_port}: FAILED ({e})")
         
     click.echo("Doctor check complete.")
 
@@ -63,11 +65,11 @@ def doctor():
 def generate_keys():
     """Generate Ed25519 keypair for scope signing."""
     priv, pub = generate_keypair()
-    with open('cascabel.key', 'wb') as f:
+    with open(CONFIG.private_key_path, 'wb') as f:
         f.write(priv)
-    with open('cascabel.pub', 'wb') as f:
+    with open(CONFIG.public_key_path, 'wb') as f:
         f.write(pub)
-    click.echo("Keys generated: cascabel.key, cascabel.pub")
+    click.echo(f"Keys generated: {CONFIG.private_key_path}, {CONFIG.public_key_path}")
 
 @cli.command()
 @click.argument('scope_file')
@@ -81,7 +83,6 @@ def sign_scope(scope_file, key_file):
         private_key_pem = f.read()
         
     signature = sign_payload(private_key_pem, content.encode('utf-8'))
-    
     signed_content = f"{content}\n---\nsignature: {signature}\n"
     
     with open(scope_file, 'w') as f:
@@ -94,12 +95,12 @@ def sign_scope(scope_file, key_file):
 def run(technique_id):
     """Run an emulation for the given technique ID."""
     try:
-        scope = Scope.load('scope.yaml', 'cascabel.pub')
+        scope = Scope.load(CONFIG.scope_path, CONFIG.public_key_path)
     except Exception as e:
         click.echo(f"Scope validation failed: {e}")
         return
         
-    tests = load_tests('data/atomics')
+    tests = load_tests(CONFIG.atomics_dir)
     allowed_tests = filter_by_scope(tests, scope)
     
     target_test = None
@@ -190,7 +191,10 @@ def synthesize(technique_id):
         click.echo(f"Synthesizing rule for {technique_id} based on {len(events)} events...")
         rule_yaml = generate_rule(events, technique_id)
         
-        out_path = f"data/detections/{technique_id}.yaml"
+        if not os.path.exists(CONFIG.detections_dir):
+            os.makedirs(CONFIG.detections_dir)
+            
+        out_path = os.path.join(CONFIG.detections_dir, f"{technique_id}.yaml")
         with open(out_path, 'w') as f:
             f.write(rule_yaml)
             
@@ -204,7 +208,7 @@ def synthesize(technique_id):
 def prove(technique_id):
     """Prove a detection rule against telemetry."""
     try:
-        rule_path = f"data/detections/{technique_id}.yaml"
+        rule_path = os.path.join(CONFIG.detections_dir, f"{technique_id}.yaml")
         if not os.path.exists(rule_path):
             click.echo(f"Rule file {rule_path} not found.")
             return
@@ -225,6 +229,48 @@ def prove(technique_id):
             
     except Exception as e:
         click.echo(f"Prove Error: {str(e)}")
+
+@cli.command()
+def optimize():
+    """Run the coverage-gain optimizer to recommend the next technique."""
+    try:
+        scope = Scope.load(CONFIG.scope_path, CONFIG.public_key_path)
+    except Exception as e:
+        click.echo(f"Scope validation failed: {e}")
+        return
+        
+    tests = load_tests(CONFIG.atomics_dir)
+    allowed_tests = filter_by_scope(tests, scope)
+    
+    scored_tests = optimize_coverage(allowed_tests)
+    if not scored_tests:
+        click.echo("All scoped techniques are already covered! No backlog.")
+        return
+        
+    click.echo(f"Coverage-Gain Optimizer: Found {len(scored_tests)} pending techniques.")
+    click.echo("Top 5 recommended techniques to emulate next:")
+    for i, (score, test) in enumerate(scored_tests[:5]):
+        click.echo(f"  {i+1}. {test.technique_id} ({test.name}) - Score: {score:.2f}")
+        for tac in test.tactics:
+            click.echo(f"     Tactic: {tac}")
+
+@cli.command()
+def serve():
+    """Run the CASCABEL API and Dashboard backend."""
+    import uvicorn
+    from cascabel.api import app
+    click.echo(f"Starting CASCABEL API on {CONFIG.api_host}:{CONFIG.api_port}")
+    uvicorn.run(app, host=CONFIG.api_host, port=CONFIG.api_port)
+
+@cli.command()
+@click.argument('output_file', default='CASCABEL_report.pdf')
+def report(output_file):
+    """Generate an executive PDF report of coverage and detections."""
+    try:
+        generate_pdf_report(output_file)
+        click.echo(f"Report successfully generated at {output_file}")
+    except Exception as e:
+        click.echo(f"Report generation failed: {e}")
 
 if __name__ == '__main__':
     cli()

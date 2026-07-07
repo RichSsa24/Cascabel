@@ -17,8 +17,11 @@ def test_prover():
     ]
     
     rule = {
-        'logic': {
-            'process_name': 'echo'
+        'detection': {
+            'selection': {
+                'Image|endswith': 'echo'
+            },
+            'condition': 'selection'
         }
     }
     
@@ -26,8 +29,11 @@ def test_prover():
     assert fires is True
     
     rule2 = {
-        'logic': {
-            'process_name': 'bash'
+        'detection': {
+            'selection': {
+                'Image|endswith': 'bash'
+            },
+            'condition': 'selection'
         }
     }
     

@@ -10,10 +10,12 @@ __pycache__/
 .idea/
 
 # CASCABEL Specific
-*.db
-*.sqlite3
+# Data & Outputs
+/data/detections/*.yaml
+!/data/detections/.gitkeep
+telemetry.db
+mock_audit.log
 ledger.jsonl
 *.key
 *.pub
-/detections/*.yml
-!/detections/.gitkeep
+.code-review-graph/

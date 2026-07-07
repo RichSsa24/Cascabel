@@ -2,7 +2,8 @@ import pytest
 from datetime import datetime, timezone
 from cascabel.telemetry.schema import NormalizedEvent
 from cascabel.synthesis.prompt import build_prompt
-from cascabel.synthesis.llm import _generate_mock_rule
+from cascabel.synthesis.llm import generate_rule, UngroundedRuleError
+from cascabel.synthesis.providers import MockProvider
 
 def test_prompt_builder():
     event = NormalizedEvent(
@@ -17,7 +18,7 @@ def test_prompt_builder():
     assert "echo" in prompt
     assert "echo hello" in prompt
     
-def test_mock_rule_generation():
+def test_mock_provider_synthesis():
     event = NormalizedEvent(
         timestamp=datetime.now(timezone.utc),
         host="127.0.0.1",
@@ -26,6 +27,39 @@ def test_mock_rule_generation():
         process_name="cat",
         command_line="cat /etc/passwd"
     )
-    rule = _generate_mock_rule([event], "T1003")
-    assert rule['logic']['process_name'] == "cat"
-    assert rule['title'] == "Detect T1003"
+    # Valid YAML grounded in "cat"
+    valid_yaml = '''
+title: Detect T1003
+status: candidate
+detection:
+  selection:
+    Image|endswith: cat
+  condition: selection
+'''
+    provider = MockProvider(response=valid_yaml)
+    rule_yaml = generate_rule([event], "T1003", provider=provider)
+    assert 'Image|endswith: cat' in rule_yaml
+    assert 'attack.t1003' in rule_yaml
+
+def test_ungrounded_fallback():
+    event = NormalizedEvent(
+        timestamp=datetime.now(timezone.utc),
+        host="127.0.0.1",
+        source="mock",
+        event_id="EXECVE",
+        process_name="cat",
+        command_line="cat /etc/passwd"
+    )
+    # Hallucination
+    invalid_yaml = '''
+title: Detect T1003
+detection:
+  selection:
+    Image|endswith: mimikatz
+  condition: selection
+'''
+    provider = MockProvider(response=invalid_yaml)
+    rule_yaml = generate_rule([event], "T1003", provider=provider)
+    # It should fallback to deterministic rule which uses 'cat'
+    assert 'Image|endswith: cat' in rule_yaml
+    assert 'mimikatz' not in rule_yaml

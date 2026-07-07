@@ -2,15 +2,29 @@ version: '3.8'
 
 services:
   app:
-    image: python:3.10-slim
-    command: tail -f /dev/null
+    build: .
+    ports:
+      - "8888:8888"
     volumes:
-      - .:/app
-    working_dir: /app
+      - ./data:/app/data
+      - ./ledger.jsonl:/app/ledger.jsonl
+      - ./telemetry.db:/app/telemetry.db
+      - ./scope.yaml:/app/scope.yaml
+      - ./cascabel.pub:/app/cascabel.pub
+      - ./cascabel.key:/app/cascabel.key
+    environment:
+      - CASCABEL_API_HOST=0.0.0.0
+      - CASCABEL_AGENT_HOST=target-linux
+    depends_on:
+      - target-linux
 
   target-linux:
-    build: 
-      context: ./target
-    privileged: true
-    ports:
-      - "8080:8080"
+    image: python:3.14-slim
+    volumes:
+      - ./target:/app/target
+      - ./cascabel:/app/cascabel
+    working_dir: /app
+    environment:
+      - PYTHONPATH=/app
+      - CASCABEL_AGENT_BIND=0.0.0.0
+    command: python -m target.agent

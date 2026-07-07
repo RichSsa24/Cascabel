@@ -1,43 +1,66 @@
-import urllib.request
-import json
+import yaml
 from typing import List
 from cascabel.telemetry.schema import NormalizedEvent
-from .prompt import build_prompt
-import yaml
+from cascabel.synthesis.prompt import build_prompt
+from cascabel.synthesis.providers import get_provider, LLMProvider, LLMUnavailableError
+from cascabel.synthesis.sigma_rule import (
+    build_grounded_rule, 
+    parse_selectors, 
+    UngroundableTelemetryError
+)
 
-def _generate_mock_rule(events: List[NormalizedEvent], technique_id: str) -> dict:
-    # Deterministic mock generating a rule grounded ONLY in the telemetry
-    process_names = list(set([e.process_name for e in events if e.process_name]))
+class UngroundedRuleError(Exception):
+    """Raised when an LLM synthesizes a rule referencing unobserved telemetry."""
+
+def validate_grounding(rule_yaml: str, events: List[NormalizedEvent]) -> None:
+    """Ensure every selector in the Sigma rule matches observed telemetry."""
+    # This ensures the rule is structurally valid YAML and parsable Sigma
+    try:
+        selectors = parse_selectors(rule_yaml)
+    except Exception as e:
+        raise UngroundedRuleError(f"Invalid Sigma structure: {e}")
+        
+    for sel in selectors:
+        matched_any = False
+        for e in events:
+            val = getattr(e, sel.attr, None)
+            if sel.matches_value(val):
+                matched_any = True
+                break
+        if not matched_any:
+            raise UngroundedRuleError(f"Hallucination detected: {sel.field} {sel.modifier} '{sel.value}' not found in telemetry.")
+
+def generate_rule(events: List[NormalizedEvent], technique_id: str, provider: LLMProvider | None = None) -> str:
+    """Synthesize a Sigma rule using the LLM, with fallback to deterministic local rules."""
+    provider = provider or get_provider()
     
-    rule = {
-        'title': f'Detect {technique_id}',
-        'description': f'Auto-synthesized rule for {technique_id}',
-        'logic': {
-            'process_name': process_names[0] if process_names else 'UNKNOWN'
-        }
-    }
-    return rule
-
-def generate_rule(events: List[NormalizedEvent], technique_id: str) -> str:
+    # We must have process_name to generate anything grounded
+    if not any(e.process_name for e in events):
+        raise UngroundableTelemetryError("Cannot synthesize rule without process_name telemetry.")
+        
     prompt = build_prompt(events)
-    url = "http://localhost:11434/api/generate"
-    
-    payload = {
-        "model": "mistral",
-        "prompt": prompt,
-        "stream": False
-    }
     
     try:
-        req = urllib.request.Request(url, data=json.dumps(payload).encode('utf-8'), headers={'Content-Type': 'application/json'}, method='POST')
-        with urllib.request.urlopen(req, timeout=5) as response:
-            res_data = json.loads(response.read().decode('utf-8'))
-            response_text = res_data.get('response', '')
-            # Parse YAML from LLM response (assuming it's formatted well)
-            # For robustness in this implementation, if it fails, we fall back.
-            yaml.safe_load(response_text)
-            return response_text
-    except Exception as e:
-        # Graceful fallback to deterministic mock to satisfy C0/C4 constraints
-        rule_dict = _generate_mock_rule(events, technique_id)
-        return yaml.dump(rule_dict)
+        response_text = provider.complete(prompt)
+        
+        # Often LLMs wrap yaml in ```yaml ... ```
+        if "```yaml" in response_text:
+            response_text = response_text.split("```yaml")[1].split("```")[0].strip()
+        elif "```" in response_text:
+            response_text = response_text.split("```")[1].split("```")[0].strip()
+            
+        validate_grounding(response_text, events)
+        
+        # Enforce CASCABEL tags and candidate status
+        rule = yaml.safe_load(response_text)
+        rule['status'] = 'candidate'
+        if 'tags' not in rule:
+            rule['tags'] = []
+        if f'attack.{technique_id.lower()}' not in rule['tags']:
+            rule['tags'].append(f'attack.{technique_id.lower()}')
+            
+        return yaml.dump(rule, sort_keys=False)
+        
+    except (LLMUnavailableError, UngroundedRuleError):
+        # Fallback to the safe, mathematically grounded deterministic generator
+        return build_grounded_rule(events, technique_id)

@@ -2,9 +2,13 @@ import http.server
 import socketserver
 import json
 import subprocess
+import os
+import sys
 from datetime import datetime, timezone
 
-PORT = 8080
+# Allow importing cascabel when run standalone
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from cascabel.config import CONFIG
 
 class AgentHandler(http.server.BaseHTTPRequestHandler):
     def do_POST(self):
@@ -21,19 +25,18 @@ class AgentHandler(http.server.BaseHTTPRequestHandler):
                 # Log simulated telemetry
                 log_entry = {
                     'timestamp': start_time,
-                    'host': '127.0.0.1',
+                    'host': CONFIG.agent_host,
                     'source': 'mock_auditd',
                     'event_id': 'EXECVE',
                     'process_name': command.split()[0] if command else '',
                     'command_line': command
                 }
-                with open('mock_audit.log', 'a') as f:
+                with open(CONFIG.mock_audit_log, 'a') as f:
                     f.write(json.dumps(log_entry) + '\n')
                 
-                # Execute the command
+                # Execute the command securely without shell=True
                 process = subprocess.Popen(
-                    command,
-                    shell=True,
+                    ["sh", "-c", command],
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                     text=True
@@ -66,6 +69,6 @@ class AgentHandler(http.server.BaseHTTPRequestHandler):
             self.end_headers()
 
 if __name__ == "__main__":
-    with socketserver.TCPServer(("", PORT), AgentHandler) as httpd:
-        print(f"CASCABEL agent listening on port {PORT}")
+    with socketserver.TCPServer((CONFIG.agent_bind, CONFIG.agent_port), AgentHandler) as httpd:
+        print(f"CASCABEL agent listening on {CONFIG.agent_bind}:{CONFIG.agent_port}")
         httpd.serve_forever()
