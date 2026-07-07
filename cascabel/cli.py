@@ -5,6 +5,9 @@ from cascabel.auth.crypto import generate_keypair, sign_payload
 from cascabel.audit.ledger import verify_ledger, append_entry
 from cascabel.auth.scope import Scope
 from cascabel.orchestrator.engine import load_tests, filter_by_scope, execute_test, execute_cleanup
+from cascabel.telemetry.store import init_db, insert_event
+from cascabel.telemetry.normalizer import parse_mock_audit_log
+from cascabel.telemetry.correlator import correlate_emulation, find_last_emulation_in_ledger, InsufficientTelemetryError
 
 @click.group()
 def cli():
@@ -126,7 +129,9 @@ def run(technique_id):
         "technique": technique_id,
         "target": target_ip,
         "status": res.status,
-        "returncode": res.returncode
+        "returncode": res.returncode,
+        "start_time": res.start_time,
+        "end_time": res.end_time
     })
     
     click.echo(f"Result: {res.status}, returncode: {res.returncode}")
@@ -143,6 +148,34 @@ def run(technique_id):
     })
     
     click.echo(f"Cleanup success: {cleanup_success}")
+
+@cli.command()
+@click.argument('logfile')
+def ingest(logfile):
+    """Ingest and normalize telemetry logs."""
+    init_db()
+    events = parse_mock_audit_log(logfile)
+    for event in events:
+        insert_event(event)
+    click.echo(f"Ingested {len(events)} events from {logfile}.")
+
+@cli.command()
+@click.argument('technique_id')
+def correlate(technique_id):
+    """Correlate telemetry for the last run of a technique."""
+    try:
+        run_data = find_last_emulation_in_ledger(technique_id)
+        click.echo(f"Found run for {technique_id} on {run_data['target']} from {run_data['start_time']} to {run_data['end_time']}")
+        
+        tech, events = correlate_emulation(technique_id, run_data['target'], run_data['start_time'], run_data['end_time'])
+        click.echo(f"Correlated {len(events)} events:")
+        for e in events:
+            click.echo(f"  [{e.timestamp}] {e.source} {e.event_id} - {e.process_name}: {e.command_line}")
+            
+    except InsufficientTelemetryError as e:
+        click.echo(str(e))
+    except Exception as e:
+        click.echo(f"Error: {str(e)}")
 
 if __name__ == '__main__':
     cli()

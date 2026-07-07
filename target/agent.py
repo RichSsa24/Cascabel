@@ -18,6 +18,18 @@ class AgentHandler(http.server.BaseHTTPRequestHandler):
                 
                 start_time = datetime.now(timezone.utc).isoformat()
                 
+                # Log simulated telemetry
+                log_entry = {
+                    'timestamp': start_time,
+                    'host': '127.0.0.1',
+                    'source': 'mock_auditd',
+                    'event_id': 'EXECVE',
+                    'process_name': command.split()[0] if command else '',
+                    'command_line': command
+                }
+                with open('mock_audit.log', 'a') as f:
+                    f.write(json.dumps(log_entry) + '\n')
+                
                 # Execute the command
                 process = subprocess.Popen(
                     command,
