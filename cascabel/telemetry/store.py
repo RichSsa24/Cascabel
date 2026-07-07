@@ -23,6 +23,7 @@ def init_db():
     conn.close()
 
 def insert_event(event: NormalizedEvent):
+    init_db()
     conn = sqlite3.connect(CONFIG.db_path)
     c = conn.cursor()
     c.execute('''
@@ -40,6 +41,7 @@ def insert_event(event: NormalizedEvent):
     conn.close()
 
 def get_events_for_host_in_window(host: str, start: datetime, end: datetime) -> List[NormalizedEvent]:
+    init_db()
     conn = sqlite3.connect(CONFIG.db_path)
     c = conn.cursor()
     
