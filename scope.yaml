@@ -1,11 +1,15 @@
 allowed_targets:
   - "127.0.0.1"
 allowed_techniques:
-  - "T1059.001"
+  - "T1059.004"
+  - "T1082"
+  - "T1018"
+  - "T1070.004"
+  - "T1136.001"
 max_hosts: 1
-max_actions_per_run: 5
+max_actions_per_run: 10
 valid_from: "2024-01-01T00:00:00Z"
 valid_until: "2027-01-01T00:00:00Z"
-dry_run: true
+dry_run: false
 ---
-signature: mY7U5E6AnZWuvvleH49oiR2TiETuJnuBIWsSVN6eKJxWkvRiGCHMXV8OlniAploWs5JIytlWhEvEEej3xUpgBQ==
+signature: aS9piYtkbqJ3H60UE5jiJNKWpu+sjhPBYtYpQGIU6I9m26r6Qqa5z9AIoBdTtBwVuxU8nYV/ITTgrAqqQDnjDw==

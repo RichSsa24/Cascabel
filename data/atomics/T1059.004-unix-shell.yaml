@@ -1,0 +1,9 @@
+technique_id: "T1059.004"
+name: "Unix Shell"
+tactic: "Execution"
+variants:
+  - name: "Run Unix Shell Command"
+    description: "Executes a benign command using the Unix shell"
+    supported_platforms: ["linux"]
+    command: 'echo "cascabel_execution_test" > /tmp/cascabel_t1059.txt'
+    cleanup: 'rm -f /tmp/cascabel_t1059.txt'

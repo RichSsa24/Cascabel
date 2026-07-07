@@ -1,0 +1,9 @@
+technique_id: "T1018"
+name: "Remote System Discovery"
+tactic: "Discovery"
+variants:
+  - name: "Ping remote system"
+    description: "Ping an external IP to discover connectivity"
+    supported_platforms: ["linux"]
+    command: 'ping -c 1 8.8.8.8'
+    cleanup: 'echo "No cleanup needed"'

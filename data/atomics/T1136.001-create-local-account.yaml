@@ -1,0 +1,9 @@
+technique_id: "T1136.001"
+name: "Create Local Account"
+tactic: "Persistence"
+variants:
+  - name: "Create dummy user account"
+    description: "Creates a local account to simulate persistence"
+    supported_platforms: ["linux"]
+    command: 'useradd -M -N -s /usr/sbin/nologin cascabel_dummy_user'
+    cleanup: 'userdel cascabel_dummy_user'

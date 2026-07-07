@@ -1,0 +1,9 @@
+technique_id: "T1082"
+name: "System Information Discovery"
+tactic: "Discovery"
+variants:
+  - name: "Discover OS info"
+    description: "Identifies system OS and kernel"
+    supported_platforms: ["linux"]
+    command: 'uname -a; cat /etc/os-release'
+    cleanup: 'echo "No cleanup needed"'

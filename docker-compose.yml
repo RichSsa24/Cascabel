@@ -1,14 +1,16 @@
 version: '3.8'
 
 services:
-  # To be populated in Phase 1 (Lab + Orchestrator)
-  # - Target hosts (Linux)
-  # - Telemetry Collector
-  # - Test Detection Engine
-  # - App
   app:
     image: python:3.10-slim
     command: tail -f /dev/null
     volumes:
       - .:/app
     working_dir: /app
+
+  target-linux:
+    build: 
+      context: ./target
+    privileged: true
+    ports:
+      - "8080:8080"

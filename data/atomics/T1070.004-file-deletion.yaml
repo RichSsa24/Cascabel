@@ -1,0 +1,9 @@
+technique_id: "T1070.004"
+name: "File Deletion"
+tactic: "Defense Evasion"
+variants:
+  - name: "Delete temporary file"
+    description: "Create and delete a sensitive-looking log file"
+    supported_platforms: ["linux"]
+    command: 'touch /tmp/sensitive.log && rm -f /tmp/sensitive.log'
+    cleanup: 'echo "No cleanup needed"'
