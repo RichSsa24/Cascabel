@@ -26,7 +26,7 @@ def optimize_coverage(available_tests: List[AtomicTest]) -> List[Tuple[float, At
     covered_tactics: Dict[str, int] = {}
     for test in available_tests:
         if test.technique_id in covered_techs:
-            for tactic in test.tactics:
+            for tactic in [test.tactic]:
                 covered_tactics[tactic] = covered_tactics.get(tactic, 0) + 1
                 
     backlog = [t for t in available_tests if t.technique_id not in covered_techs]
@@ -38,7 +38,7 @@ def optimize_coverage(available_tests: List[AtomicTest]) -> List[Tuple[float, At
         score += 1.0 
         
         # Marginal tactic gain: +0.5 for each tactic not yet covered
-        for tactic in test.tactics:
+        for tactic in [test.tactic]:
             if covered_tactics.get(tactic, 0) == 0:
                 score += 0.5
             else:

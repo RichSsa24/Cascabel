@@ -1,4 +1,21 @@
-description: Auto-synthesized rule for T1059.004
-logic:
-  process_name: echo
-title: Detect T1059.004
+title: Emulated T1059.004 via echo
+id: 4704c24f-08bd-5f45-1434-ea270f466011
+status: candidate
+description: Lab-synthesized detection for ATT&CK T1059.004, grounded in telemetry
+  observed during CASCABEL emulation.
+references:
+- https://attack.mitre.org/techniques/T1059/004/
+author: CASCABEL (AI candidate, human review required)
+tags:
+- attack.t1059.004
+logsource:
+  product: linux
+  category: process_creation
+detection:
+  selection:
+    Image|endswith: echo
+    CommandLine|contains: cascabel_execution_test
+  condition: selection
+falsepositives:
+- Legitimate administrative use of the same binary
+level: medium

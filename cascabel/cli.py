@@ -251,7 +251,7 @@ def optimize():
     click.echo("Top 5 recommended techniques to emulate next:")
     for i, (score, test) in enumerate(scored_tests[:5]):
         click.echo(f"  {i+1}. {test.technique_id} ({test.name}) - Score: {score:.2f}")
-        for tac in test.tactics:
+        for tac in [test.tactic]:
             click.echo(f"     Tactic: {tac}")
 
 @cli.command()

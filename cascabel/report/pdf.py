@@ -27,7 +27,7 @@ def generate_pdf_report(output_path: str):
     data = [["Technique", "Name", "Tactics"]]
     for test in tests:
         if test.technique_id in covered_techs:
-            data.append([test.technique_id, test.name, ", ".join(test.tactics)])
+            data.append([test.technique_id, test.name, test.tactic])
             
     if len(data) > 1:
         table = Table(data)

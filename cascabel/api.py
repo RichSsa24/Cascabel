@@ -58,7 +58,7 @@ def get_coverage():
     tactic_coverage = {}
     for test in tests:
         is_covered = test.technique_id in covered_techs
-        for tactic in test.tactics:
+        for tactic in [test.tactic]:
             if tactic not in tactic_coverage:
                 tactic_coverage[tactic] = {"total": 0, "covered": 0}
             tactic_coverage[tactic]["total"] += 1
