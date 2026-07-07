@@ -12,14 +12,14 @@
 
 ---
 
-## 🎯 The Problem: The Detection Engineering Gap
+## The Problem: The Detection Engineering Gap
 In modern cybersecurity, creating robust detection rules (like Sigma or YARA) takes hours of manual labor. Security engineers must emulate an adversary, dig through logs, extract the relevant telemetry, write a rule, and test it for false positives. **CASCABEL completely automates this loop.**
 
 CASCABEL safely emulates benign adversary techniques, captures the resulting telemetry, uses Artificial Intelligence to synthesize a Sigma detection rule **strictly grounded in reality**, and mathematically proves the rule works against the collected telemetry—all governed by a cryptographically signed authorization scope.
 
 ---
 
-## 🧠 Academic & Technical Innovation
+## Academic & Technical Innovation
 Built with rigorous engineering standards (satisfying strict non-negotiable constraints **C0-C6**), CASCABEL brings advanced concepts to Purple Teaming:
 
 1. **Authorization-First Architecture (C1)**: A target machine will not execute any emulation without a valid, non-expired Ed25519-signed scope contract (`scope.yaml`).
@@ -30,7 +30,7 @@ Built with rigorous engineering standards (satisfying strict non-negotiable cons
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```mermaid
 graph TD
@@ -48,7 +48,7 @@ graph TD
 
 ---
 
-## 🚀 Quickstart (Production-Ready Docker)
+## Quickstart (Production-Ready Docker)
 
 CASCABEL is packaged for instantaneous deployment.
 
@@ -65,11 +65,11 @@ cd ..
 # 3. Launch the full stack (API, Target Agent, and Dashboard)
 docker compose up -d --build
 ```
-> 🌐 **Dashboard Access**: Open [http://localhost:8888](http://localhost:8888) to view the live Coverage Heatmap and Ledger Activity.
+> **Dashboard Access**: Open [http://localhost:8888](http://localhost:8888) to view the live Coverage Heatmap and Ledger Activity.
 
 ---
 
-## 💻 Local Development & CLI
+## Local Development & CLI
 
 For developers, researchers, and pentesters wanting to run the system directly via CLI:
 
@@ -108,7 +108,7 @@ cascabel report
 
 ---
 
-## 📊 Features & Subsystems
+## Features & Subsystems
 * **Phase 1 (Orchestrator)**: Safe, Python-based test runner that guarantees all emulations are benign, reversible, and correctly logged.
 * **Phase 2 (Telemetry)**: Automated collection and time-window correlation of emulated activity (e.g., process executions).
 * **Phase 3 (Synthesis & Proving)**: Converts raw JSON telemetry into industry-standard YAML Sigma rules, proving their efficacy immediately.
@@ -117,7 +117,7 @@ cascabel report
 
 ---
 
-## 🛡️ Adherence to Constraints
+## Adherence to Constraints
 CASCABEL was built under extremely rigorous, non-negotiable architectural constraints to ensure it is **safe for enterprise environments**:
 * **Benign Only (C2)**: Only safe, reversible ATT&CK-mapped atomic tests are executed. No exploits. No C2.
 * **Secure but Functional (C3)**: Fully isolated via Docker networks; target agents only accept signed payloads.
