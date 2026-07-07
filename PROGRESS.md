@@ -1,11 +1,12 @@
 # CASCABEL Progress
 
-## Current Phase: Phase 2 (Telemetry + Correlation)
+## Current Phase: Phase 3 (Synthesis & Proving)
 **Status**: Not Started
 
 ## Completed Phases
 * Phase 0 (Scope, Audit, Repo)
 * Phase 1 (Lab + Orchestrator)
+* Phase 2 (Telemetry + Correlation)
 
 ## Open Questions
 *None*

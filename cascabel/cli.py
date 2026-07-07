@@ -8,6 +8,8 @@ from cascabel.orchestrator.engine import load_tests, filter_by_scope, execute_te
 from cascabel.telemetry.store import init_db, insert_event
 from cascabel.telemetry.normalizer import parse_mock_audit_log
 from cascabel.telemetry.correlator import correlate_emulation, find_last_emulation_in_ledger, InsufficientTelemetryError
+from cascabel.synthesis.llm import generate_rule
+from cascabel.synthesis.prover import prove_detection
 
 @click.group()
 def cli():
@@ -176,6 +178,53 @@ def correlate(technique_id):
         click.echo(str(e))
     except Exception as e:
         click.echo(f"Error: {str(e)}")
+
+@cli.command()
+@click.argument('technique_id')
+def synthesize(technique_id):
+    """Synthesize a detection rule from telemetry."""
+    try:
+        run_data = find_last_emulation_in_ledger(technique_id)
+        tech, events = correlate_emulation(technique_id, run_data['target'], run_data['start_time'], run_data['end_time'])
+        
+        click.echo(f"Synthesizing rule for {technique_id} based on {len(events)} events...")
+        rule_yaml = generate_rule(events, technique_id)
+        
+        out_path = f"data/detections/{technique_id}.yaml"
+        with open(out_path, 'w') as f:
+            f.write(rule_yaml)
+            
+        click.echo(f"Rule written to {out_path}")
+        
+    except Exception as e:
+        click.echo(f"Synthesis Error: {str(e)}")
+
+@cli.command()
+@click.argument('technique_id')
+def prove(technique_id):
+    """Prove a detection rule against telemetry."""
+    try:
+        rule_path = f"data/detections/{technique_id}.yaml"
+        if not os.path.exists(rule_path):
+            click.echo(f"Rule file {rule_path} not found.")
+            return
+            
+        with open(rule_path, 'r') as f:
+            rule_yaml = f.read()
+            
+        run_data = find_last_emulation_in_ledger(technique_id)
+        tech, events = correlate_emulation(technique_id, run_data['target'], run_data['start_time'], run_data['end_time'])
+        
+        fires = prove_detection(rule_yaml, events)
+        if fires:
+            click.echo(f"PROVE_SUCCESS: Rule {technique_id} successfully fired on the correlated telemetry!")
+            append_entry("PROVE_SUCCESS", {"technique": technique_id, "target": run_data['target']})
+        else:
+            click.echo(f"PROVE_FAILED: Rule {technique_id} did not fire on the correlated telemetry.")
+            append_entry("PROVE_FAILED", {"technique": technique_id, "target": run_data['target']})
+            
+    except Exception as e:
+        click.echo(f"Prove Error: {str(e)}")
 
 if __name__ == '__main__':
     cli()
