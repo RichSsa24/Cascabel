@@ -6,12 +6,7 @@ services:
     ports:
       - "8888:8888"
     volumes:
-      - ./data:/app/data
-      - ./ledger.jsonl:/app/ledger.jsonl
-      - ./telemetry.db:/app/telemetry.db
-      - ./scope.yaml:/app/scope.yaml
-      - ./cascabel.pub:/app/cascabel.pub
-      - ./cascabel.key:/app/cascabel.key
+      - .:/app
     environment:
       - CASCABEL_API_HOST=0.0.0.0
       - CASCABEL_AGENT_HOST=target-linux
@@ -21,8 +16,7 @@ services:
   target-linux:
     image: python:3.14-slim
     volumes:
-      - ./target:/app/target
-      - ./cascabel:/app/cascabel
+      - .:/app
     working_dir: /app
     environment:
       - PYTHONPATH=/app
