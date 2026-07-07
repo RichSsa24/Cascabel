@@ -1,0 +1,19 @@
+# Environments
+.env
+venv/
+env/
+__pycache__/
+*.pyc
+
+# IDEs
+.vscode/
+.idea/
+
+# CASCABEL Specific
+*.db
+*.sqlite3
+ledger.jsonl
+*.key
+*.pub
+/detections/*.yml
+!/detections/.gitkeep

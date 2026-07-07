@@ -1,0 +1,11 @@
+allowed_targets:
+  - "127.0.0.1"
+allowed_techniques:
+  - "T1059.001"
+max_hosts: 1
+max_actions_per_run: 5
+valid_from: "2024-01-01T00:00:00Z"
+valid_until: "2027-01-01T00:00:00Z"
+dry_run: true
+---
+signature: mY7U5E6AnZWuvvleH49oiR2TiETuJnuBIWsSVN6eKJxWkvRiGCHMXV8OlniAploWs5JIytlWhEvEEej3xUpgBQ==
