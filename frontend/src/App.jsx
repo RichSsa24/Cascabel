@@ -8,9 +8,9 @@ function App() {
   const [detections, setDetections] = useState([]);
 
   useEffect(() => {
-    fetch('http://localhost:8888/api/coverage').then(res => res.json()).then(setCoverage).catch(console.error);
-    fetch('http://localhost:8888/api/ledger').then(res => res.json()).then(setLedger).catch(console.error);
-    fetch('http://localhost:8888/api/detections').then(res => res.json()).then(setDetections).catch(console.error);
+    fetch('/api/coverage').then(res => res.json()).then(setCoverage).catch(console.error);
+    fetch('/api/ledger').then(res => res.json()).then(setLedger).catch(console.error);
+    fetch('/api/detections').then(res => res.json()).then(setDetections).catch(console.error);
   }, []);
 
   const coverageData = coverage ? Object.entries(coverage.tactics).map(([name, data]) => ({

@@ -17,14 +17,14 @@ def validate_grounding(rule_yaml: str, events: List[NormalizedEvent]) -> None:
     # This ensures the rule is structurally valid YAML and parsable Sigma
     try:
         selectors = parse_selectors(rule_yaml)
-    except Exception as e:
-        raise UngroundedRuleError(f"Invalid Sigma structure: {e}")
+    except Exception as ex:
+        raise UngroundedRuleError(f"Invalid Sigma structure: {ex}")
         
     for sel in selectors:
         matched_any = False
         for e in events:
             val = getattr(e, sel.attr, None)
-            if sel.matches_value(val):
+            if sel.matches_value(str(val) if val is not None else None):
                 matched_any = True
                 break
         if not matched_any:

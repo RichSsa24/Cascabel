@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 
 import yaml
 
@@ -34,7 +34,7 @@ class Selector:
     value: str
     attr: str           # resolved NormalizedEvent attribute
 
-    def matches_value(self, observed: str) -> bool:
+    def matches_value(self, observed: Any) -> bool:
         if observed is None:
             return False
         if self.modifier == "contains":
@@ -73,7 +73,7 @@ def build_grounded_rule(
     # the most distinguishing signal for the emulated technique.
     anchor = min(set(process_names), key=process_names.count)
 
-    detection: Dict[str, object] = {"selection": {"Image|endswith": anchor}}
+    detection: Dict[str, Any] = {"selection": {"Image|endswith": anchor}}
 
     # Add a distinctive command-line substring when telemetry provides one.
     cmd = next(

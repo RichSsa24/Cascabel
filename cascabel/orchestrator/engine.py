@@ -7,7 +7,7 @@ from .models import AtomicTest, TestVariant, RunResult
 from cascabel.auth.scope import Scope
 
 def load_tests(tests_dir: str) -> List[AtomicTest]:
-    tests = []
+    tests: List[AtomicTest] = []
     if not os.path.exists(tests_dir):
         return tests
         
