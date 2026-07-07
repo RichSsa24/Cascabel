@@ -117,6 +117,10 @@ def run(technique_id):
                 return
         return
         
+    if not scope.contract.allowed_targets:
+        click.echo("Error: The scope contract does not specify any allowed_targets.")
+        return
+        
     target_ip = scope.contract.allowed_targets[0]
     
     if scope.contract.dry_run:

@@ -23,7 +23,8 @@ def correlate_emulation(technique_id: str, target: str, start_time: datetime, en
     return technique_id, events
 
 def find_last_emulation_in_ledger(technique_id: str) -> dict:
-    with open('ledger.jsonl', 'r') as f:
+    from cascabel.config import CONFIG
+    with open(CONFIG.ledger_path, 'r') as f:
         lines = f.readlines()
         
     for line in reversed(lines):

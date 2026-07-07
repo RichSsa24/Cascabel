@@ -3,10 +3,10 @@ from typing import List
 from datetime import datetime
 from .schema import NormalizedEvent
 
-DB_PATH = "telemetry.db"
+from cascabel.config import CONFIG
 
 def init_db():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(CONFIG.db_path)
     c = conn.cursor()
     c.execute('''
         CREATE TABLE IF NOT EXISTS events (
@@ -23,7 +23,7 @@ def init_db():
     conn.close()
 
 def insert_event(event: NormalizedEvent):
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(CONFIG.db_path)
     c = conn.cursor()
     c.execute('''
         INSERT INTO events (timestamp, host, source, event_id, process_name, command_line)
@@ -40,7 +40,7 @@ def insert_event(event: NormalizedEvent):
     conn.close()
 
 def get_events_for_host_in_window(host: str, start: datetime, end: datetime) -> List[NormalizedEvent]:
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(CONFIG.db_path)
     c = conn.cursor()
     
     # SQLite datetime comparison works with ISO strings
